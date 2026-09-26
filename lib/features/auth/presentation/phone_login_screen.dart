@@ -15,7 +15,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   final _phoneController = TextEditingController();
   final _authRepo = AuthRepository();
   bool _isLoading = false;
-  String _selectedCountryCode = '+966';
+  String _selectedCountryCode = '+967';
 
   Future<void> _sendOtp() async {
     final phone = _phoneController.text.trim();
@@ -107,10 +107,11 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                         value: _selectedCountryCode,
                         dropdownColor: AppColors.surface,
                         items: const [
-                          DropdownMenuItem(value: '+966', child: Text('🇸🇦 +966')),
-                          DropdownMenuItem(value: '+20', child: Text('🇪🇬 +20')),
-                          DropdownMenuItem(value: '+971', child: Text('🇦🇪 +971')),
-                          DropdownMenuItem(value: '+1', child: Text('🇺🇸 +1')),
+                          DropdownMenuItem(value: '+967', child: Text('🇾🇪 اليمن +967')),
+                          DropdownMenuItem(value: '+966', child: Text('🇸🇦 السعودية +966')),
+                          DropdownMenuItem(value: '+20', child: Text('🇪🇬 مصر +20')),
+                          DropdownMenuItem(value: '+971', child: Text('🇦🇪 الإمارات +971')),
+                          DropdownMenuItem(value: '+1', child: Text('🇺🇸 أمريكا +1')),
                         ],
                         onChanged: (val) {
                           if (val != null) setState(() => _selectedCountryCode = val);
