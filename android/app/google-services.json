@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "584956022687",
+    "project_id": "vyro-abd1c",
+    "storage_bucket": "vyro-abd1c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:584956022687:android:34af4fd381c3714c0f37aa",
+        "android_client_info": {
+          "package_name": "com.vyro.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpdNVL4PDTPOuYbS8nsGwErnoSOqQoXDg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:584956022687:android:680cdfa694fc9be80f37aa",
+        "android_client_info": {
+          "package_name": "com.vyro.vyro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpdNVL4PDTPOuYbS8nsGwErnoSOqQoXDg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
