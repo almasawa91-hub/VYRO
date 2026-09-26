@@ -43,12 +43,8 @@ jobs:
         run: flutter test
 
       - name: Show Android signing fingerprints
-        run: |
-          keytool -list -v \
-            -alias androiddebugkey \
-            -keystore "$HOME/.android/debug.keystore" \
-            -storepass android \
-            -keypass android | grep -E "Owner:|SHA1:|SHA256:"
+        working-directory: android
+        run: ./gradlew signingReport
 
       - name: Build release APK
         run: flutter build apk --release
