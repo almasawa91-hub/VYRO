@@ -1,0 +1,4 @@
+storePassword=VYRO_RELEASE_STORE_PASSWORD
+keyPassword=VYRO_RELEASE_KEY_PASSWORD
+keyAlias=vyro_key
+storeFile=/path/to/vyro_release_key.jks
