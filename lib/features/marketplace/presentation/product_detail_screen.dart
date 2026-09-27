@@ -54,7 +54,7 @@ class ProductDetailScreen extends StatelessWidget {
                     Text(name, style: Theme.of(context).textTheme.headlineSmall),
                     const SizedBox(height: 8),
                     Text(
-                      price.toStringAsFixed(2) + (currency.isEmpty ? '' : ' ' + currency),
+                      '${price.toStringAsFixed(2)}${currency.isEmpty ? '' : ' $currency'}',
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     if (description.isNotEmpty) ...[
