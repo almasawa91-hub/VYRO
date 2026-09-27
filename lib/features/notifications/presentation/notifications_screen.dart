@@ -53,7 +53,7 @@ class NotificationsScreen extends StatelessWidget {
                         } catch (error) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('تعذر تحديث الإشعار: ' + error.toString())),
+                              SnackBar(content: Text('تعذر تحديث الإشعار: $error')),
                             );
                           }
                         }
