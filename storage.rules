@@ -14,7 +14,8 @@ service firebase.storage {
 
     match /users/{userId}/{allPaths=**} {
       allow read: if signedIn();
-      allow write: if owner(userId) && validImage();
+      allow create, update: if owner(userId) && validImage();
+      allow delete: if owner(userId) && signedIn();
     }
 
     match /posts/{userId}/{allPaths=**} {
@@ -24,7 +25,8 @@ service firebase.storage {
 
     match /videos/{userId}/{allPaths=**} {
       allow read: if signedIn();
-      allow write: if owner(userId) && validVideo();
+      allow create, update: if owner(userId) && validVideo();
+      allow delete: if owner(userId) && signedIn();
     }
 
     match /stories/{userId}/{allPaths=**} {
