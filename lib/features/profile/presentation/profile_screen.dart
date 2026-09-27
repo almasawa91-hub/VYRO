@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';\nimport 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../auth/data/auth_repository.dart';
@@ -220,11 +220,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Divider(color: AppColors.divider, height: 32),
             const Text('منشورات المستخدم', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            const Text('لا توجد منشورات حتى الآن', style: TextStyle(color: AppColors.textMuted)),
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: _postsStream(user.uid, isMe),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('تعذر تحميل منشورات المستخدم'),
+                  );
+                }
+                if (!snapshot.hasData) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: CircularProgressIndicator(),
+                  );
+                }
+                final posts = snapshot.data!.docs;
+                if (posts.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('لا توجد منشورات حتى الآن', style: TextStyle(color: AppColors.textMuted)),
+                  );
+                }
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: posts.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final data = posts[index].data();
+                    final text = (data['text'] ?? '').toString();
+                    final media = data['mediaUrls'] is List
+                        ? (data['mediaUrls'] as List).whereType<String>().toList()
+                        : <String>[];
+                    return Card(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (media.isNotEmpty)
+                            ClipRRect(
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                              child: CachedNetworkImage(
+                                imageUrl: media.first,
+                                width: double.infinity,
+                                height: 220,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          if (text.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Text(text),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> _postsStream(String uid, bool isMe) {
+    var query = FirebaseFirestore.instance.collection('posts').where('ownerId', isEqualTo: uid);
+    if (!isMe) {
+      query = query.where('privacy', isEqualTo: 'public');
+    }
+    return query.orderBy('createdAt', descending: true).limit(30).snapshots();
   }
 
   Widget _buildStatColumn(String label, String value) {
