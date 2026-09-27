@@ -20,12 +20,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     try {
       final files = await _picker.pickMultiImage(imageQuality: 85);
       if (!mounted) return;
-      setState(() {
-        _images..clear()..addAll(files.map((file) => File(file.path)).take(8));
-      });
+      setState(() => _images..clear()..addAll(files.map((file) => File(file.path)).take(8)));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر اختيار الصور: ' + error.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر اختيار الصور: $error')));
     }
   }
 
@@ -40,7 +38,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       Navigator.of(context).pop();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر النشر: ' + error.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر النشر: $error')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
