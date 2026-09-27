@@ -1,42 +1,38 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-
-    function isAuthenticated() {
-      return request.auth != null;
+    function signedIn() { return request.auth != null; }
+    function owner(uid) { return signedIn() && request.auth.uid == uid; }
+    function chatMember(chatId) {
+      return signedIn() &&
+        request.auth.uid in firestore.get(/databases/(default)/documents/chats/$(chatId)).data.participants;
     }
 
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+    match /users/{uid}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if owner(uid);
     }
-
-    match /users/{userId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+    match /posts/{uid}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if owner(uid);
     }
-
-    match /posts/{userId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+    match /videos/{uid}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if owner(uid);
     }
-
-    match /videos/{userId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+    match /stories/{uid}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if owner(uid);
     }
-
-    match /stories/{userId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+    match /products/{uid}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if owner(uid);
     }
-
     match /messages/{chatId}/{allPaths=**} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if chatMember(chatId);
     }
-
-    match /products/{userId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

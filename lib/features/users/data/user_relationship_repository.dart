@@ -35,17 +35,12 @@ class UserRelationshipRepository {
     if (currentUid == null || currentUid == targetUid) return;
 
     final followDocRef = _firestore.collection('follows').doc('${currentUid}_$targetUid');
-    final currentUserRef = _firestore.collection('users').doc(currentUid);
-    final targetUserRef = _firestore.collection('users').doc(targetUid);
-
     await _firestore.runTransaction((transaction) async {
       final followSnap = await transaction.get(followDocRef);
 
       if (followSnap.exists) {
         // Unfollow
         transaction.delete(followDocRef);
-        transaction.update(currentUserRef, {'followingCount': FieldValue.increment(-1)});
-        transaction.update(targetUserRef, {'followersCount': FieldValue.increment(-1)});
       } else {
         // Follow
         transaction.set(followDocRef, {
@@ -53,8 +48,6 @@ class UserRelationshipRepository {
           'followingId': targetUid,
           'createdAt': FieldValue.serverTimestamp(),
         });
-        transaction.update(currentUserRef, {'followingCount': FieldValue.increment(1)});
-        transaction.update(targetUserRef, {'followersCount': FieldValue.increment(1)});
       }
     });
   }
@@ -79,23 +72,16 @@ class UserRelationshipRepository {
     if (currentUid == null) return;
 
     final reqRef = _firestore.collection('friendRequests').doc('${senderUid}_$currentUid');
-    final friendRef1 = _firestore.collection('friends').doc('${currentUid}_$senderUid');
-    final friendRef2 = _firestore.collection('friends').doc('${senderUid}_$currentUid');
+    final ids = [currentUid, senderUid]..sort();
+    final friendRef = _firestore.collection('friends').doc('${ids[0]}_${ids[1]}');
 
     await _firestore.runTransaction((transaction) async {
       transaction.update(reqRef, {'status': 'accepted'});
-      transaction.set(friendRef1, {
-        'user1': currentUid,
-        'user2': senderUid,
+      transaction.set(friendRef, {
+        'user1': ids[0],
+        'user2': ids[1],
         'createdAt': FieldValue.serverTimestamp(),
       });
-      transaction.set(friendRef2, {
-        'user1': senderUid,
-        'user2': currentUid,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-      transaction.update(_firestore.collection('users').doc(currentUid), {'friendsCount': FieldValue.increment(1)});
-      transaction.update(_firestore.collection('users').doc(senderUid), {'friendsCount': FieldValue.increment(1)});
     });
   }
 }

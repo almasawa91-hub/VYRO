@@ -48,6 +48,11 @@ class _MainShellScreenState extends State<MainShellScreen> {
             onPressed: () => context.push('/notifications'),
           ),
           IconButton(
+            icon: const Icon(Icons.video_call_outlined, color: AppColors.textPrimary),
+            tooltip: 'رفع فيديو',
+            onPressed: () => context.push('/upload-video'),
+          ),
+          IconButton(
             icon: const Icon(Icons.settings, color: AppColors.textPrimary),
             onPressed: () => context.push('/settings'),
           ),
@@ -63,7 +68,13 @@ class _MainShellScreenState extends State<MainShellScreen> {
               onPressed: () => context.push('/create-post'),
               child: const Icon(Icons.add, color: Colors.black),
             )
-          : null,
+          : _currentIndex == 3
+              ? FloatingActionButton(
+                  backgroundColor: AppColors.primaryPink,
+                  onPressed: () => context.push('/create-product'),
+                  child: const Icon(Icons.add, color: Colors.black),
+                )
+              : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),

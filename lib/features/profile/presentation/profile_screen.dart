@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../chats/data/chat_repository.dart';
 
 import '../../users/domain/user_model.dart';
 import '../../users/data/user_relationship_repository.dart';
@@ -196,9 +197,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(width: 8),
                         IconButton(
                           icon: const Icon(Icons.chat_bubble_outline, color: AppColors.primaryGreen),
-                          onPressed: () {
-                            final chatId = 'chat_${user.uid}';
-                            context.push('/chat/$chatId', extra: user.uid);
+                          onPressed: () async {
+                            try {
+                              final chatId = await ChatRepository().getOrCreateChat(user.uid);
+                              if (context.mounted) {
+                                context.push('/chat/$chatId', extra: user.uid);
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('تعذر فتح المحادثة: $e')),
+                                );
+                              }
+                            }
                           },
                         ),
                       ],

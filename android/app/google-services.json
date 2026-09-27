@@ -12,7 +12,12 @@
           "package_name": "com.vyro.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "584956022687-25hb2ivl1pvbmg6bthprobnrp4carqt0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBpdNVL4PDTPOuYbS8nsGwErnoSOqQoXDg"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "584956022687-25hb2ivl1pvbmg6bthprobnrp4carqt0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
@@ -31,7 +41,20 @@
           "package_name": "com.vyro.vyro"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "584956022687-ggt6t4tdboo7kutctc5hfcphm183q7d7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vyro.vyro",
+            "certificate_hash": "6fdaabc7a1b4c576f1cdd0585ccc552e75ba2eaa"
+          }
+        },
+        {
+          "client_id": "584956022687-25hb2ivl1pvbmg6bthprobnrp4carqt0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBpdNVL4PDTPOuYbS8nsGwErnoSOqQoXDg"
@@ -39,7 +62,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "584956022687-25hb2ivl1pvbmg6bthprobnrp4carqt0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

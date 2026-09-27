@@ -1,7 +1,10 @@
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
 import '../../users/domain/user_model.dart';
 
 class AuthRepository {
@@ -13,53 +16,93 @@ class AuthRepository {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // Verify Phone Number with real Firebase Phone Auth
-  Future<void> verifyPhoneNumber({
-    required String phoneNumber,
-    required Function(String verificationId, int? resendToken) onCodeSent,
-    required Function(FirebaseAuthException e) onError,
-    required Function(PhoneAuthCredential credential) onAutoVerified,
+  static bool _googleInitialized = false;
+
+  Future<void> _initializeGoogle() async {
+    if (_googleInitialized) return;
+
+    await GoogleSignIn.instance.initialize();
+    _googleInitialized = true;
+  }
+
+  Future<UserCredential> signInWithEmail({
+    required String email,
+    required String password,
   }) async {
-    await _auth.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await _auth.signInWithCredential(credential);
-        onAutoVerified(credential);
-      },
-      verificationFailed: onError,
-      codeSent: onCodeSent,
-      codeAutoRetrievalTimeout: (String verificationId) {},
+    return _auth.signInWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
     );
   }
 
-  // Verify OTP
-  Future<UserCredential> verifyOtp({
-    required String verificationId,
-    required String userOtp,
+  Future<UserCredential> registerWithEmail({
+    required String email,
+    required String password,
   }) async {
-    final credential = PhoneAuthProvider.credential(
-      verificationId: verificationId,
-      smsCode: userOtp,
+    return _auth.createUserWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
     );
-    return await _auth.signInWithCredential(credential);
   }
 
-  // Check if username is available
+  Future<void> sendPasswordResetEmail({
+    required String email,
+  }) async {
+    await _auth.sendPasswordResetEmail(
+      email: email.trim(),
+    );
+  }
+
+  Future<UserCredential> signInWithGoogle() async {
+    await _initializeGoogle();
+
+    final GoogleSignInAccount googleUser =
+        await GoogleSignIn.instance.authenticate();
+
+    final GoogleSignInAuthentication googleAuth =
+        googleUser.authentication;
+
+    final String? idToken = googleAuth.idToken;
+
+    if (idToken == null || idToken.isEmpty) {
+      throw FirebaseAuthException(
+        code: 'google-id-token-missing',
+        message: 'تعذر الحصول على رمز Google.',
+      );
+    }
+
+    final credential = GoogleAuthProvider.credential(
+      idToken: idToken,
+    );
+
+    return _auth.signInWithCredential(credential);
+  }
+
   Future<bool> isUsernameAvailable(String username) async {
-    final doc = await _firestore.collection('usernames').doc(username.toLowerCase()).get();
+    final doc = await _firestore
+        .collection('usernames')
+        .doc(username.trim().toLowerCase())
+        .get();
+
     return !doc.exists;
   }
 
-  // Get User Profile from Firestore
   Future<UserModel?> getUserProfile(String uid) async {
-    final doc = await _firestore.collection('users').doc(uid).get();
+    final doc = await _firestore
+        .collection('users')
+        .doc(uid)
+        .get();
+
     if (doc.exists && doc.data() != null) {
-      return UserModel.fromMap(doc.data()!, doc.id);
+      return UserModel.fromMap(
+        doc.data()!,
+        doc.id,
+      );
     }
+
     return null;
   }
 
-  // Create Profile & atomic username claim using Firestore Transaction to eliminate race conditions
   Future<void> createProfile({
     required String displayName,
     required String username,
@@ -67,69 +110,109 @@ class AuthRepository {
     File? avatarFile,
   }) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('المستخدم غير مسجل الدخول');
 
-    final String cleanUsername = username.trim().toLowerCase();
+    if (user == null) {
+      throw Exception('المستخدم غير مسجل الدخول');
+    }
 
-    // Upload avatar first if exists
+    final String cleanUsername =
+        username.trim().toLowerCase();
+
     String photoUrl = '';
+
     if (avatarFile != null) {
-      final storageRef = _storage.ref().child('users/${user.uid}/avatar.jpg');
+      final storageRef = _storage
+          .ref()
+          .child('users/${user.uid}/avatar.jpg');
+
       await storageRef.putFile(avatarFile);
+
       photoUrl = await storageRef.getDownloadURL();
     }
 
-    final usernameDocRef = _firestore.collection('usernames').doc(cleanUsername);
-    final userDocRef = _firestore.collection('users').doc(user.uid);
+    final usernameDocRef = _firestore
+        .collection('usernames')
+        .doc(cleanUsername);
 
-    // Atomic transaction ensuring zero race conditions
+    final userDocRef = _firestore
+        .collection('users')
+        .doc(user.uid);
+
     await _firestore.runTransaction((transaction) async {
-      final usernameSnap = await transaction.get(usernameDocRef);
+      final usernameSnap =
+          await transaction.get(usernameDocRef);
+
       if (usernameSnap.exists) {
-        throw Exception('اسم المستخدم محجوز بالفعل، يرجى اختيار اسم آخر');
+        throw Exception(
+          'اسم المستخدم محجوز بالفعل، يرجى اختيار اسم آخر',
+        );
       }
 
-      transaction.set(usernameDocRef, {
-        'uid': user.uid,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      transaction.set(
+        usernameDocRef,
+        {
+          'uid': user.uid,
+          'createdAt': FieldValue.serverTimestamp(),
+        },
+      );
+
+      final now = DateTime.now();
 
       final newUser = UserModel(
         uid: user.uid,
-        phone: user.phoneNumber ?? '',
         displayName: displayName.trim(),
         username: cleanUsername,
         photoUrl: photoUrl,
         bio: bio.trim(),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        createdAt: now,
+        updatedAt: now,
       );
 
-      transaction.set(userDocRef, newUser.toMap());
+      transaction.set(
+        userDocRef,
+        newUser.toMap(),
+      );
     });
   }
 
-  // Sign out
   Future<void> signOut() async {
-    await _auth.signOut();
+    try {
+      if (_googleInitialized) {
+        await GoogleSignIn.instance.signOut();
+      }
+    } finally {
+      await _auth.signOut();
+    }
   }
 
-  // Delete account completely
   Future<void> deleteAccount() async {
     final user = _auth.currentUser;
+
     if (user == null) return;
 
     final uid = user.uid;
 
-    final userDoc = await _firestore.collection('users').doc(uid).get();
+    final userDoc = await _firestore
+        .collection('users')
+        .doc(uid)
+        .get();
+
     if (userDoc.exists) {
       final username = userDoc.data()?['username'];
+
       if (username != null) {
-        await _firestore.collection('usernames').doc(username).delete();
+        await _firestore
+            .collection('usernames')
+            .doc(username)
+            .delete();
       }
     }
 
-    await _firestore.collection('users').doc(uid).delete();
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .delete();
+
     await user.delete();
   }
 }

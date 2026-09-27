@@ -15,16 +15,19 @@ class FeedRepository {
     var query = _firestore
         .collection('posts')
         .where('privacy', isEqualTo: 'public')
-        .orderBy('createdAt', descending: true)
-        .limit(20);
+        .limit(50);
 
     if (startAfterDoc != null) {
       query = query.startAfterDocument(startAfterDoc);
     }
 
-    return query.snapshots().map((snapshot) => snapshot.docs
-        .map((doc) => PostModel.fromMap(doc.data(), doc.id))
-        .toList());
+    return query.snapshots().map((snapshot) {
+      final items = snapshot.docs
+          .map((doc) => PostModel.fromMap(doc.data(), doc.id))
+          .toList();
+      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return items.take(20).toList();
+    });
   }
 
   // Create new post with image attachments
