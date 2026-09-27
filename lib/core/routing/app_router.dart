@@ -1,8 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/splash_screen.dart';
-import '../../features/auth/presentation/phone_login_screen.dart';
-import '../../features/auth/presentation/otp_screen.dart';
+import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/create_profile_screen.dart';
 import '../../shared/main_shell_screen.dart';
 import '../../features/chats/presentation/chat_detail_screen.dart';
@@ -26,15 +25,9 @@ class AppRouter {
       ),
       GoRoute(
         path: '/login',
-        builder: (context, state) => const PhoneLoginScreen(),
+        builder: (context, state) => const LoginScreen(),
       ),
-      GoRoute(
-        path: '/otp',
-        builder: (context, state) {
-          final verificationId = state.extra as String? ?? '';
-          return OtpScreen(verificationId: verificationId);
-        },
-      ),
+
       GoRoute(
         path: '/create-profile',
         builder: (context, state) => const CreateProfileScreen(),

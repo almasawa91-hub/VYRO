@@ -26,6 +26,7 @@ dependencies:
   firebase_analytics: ^11.4.3
   firebase_crashlytics: ^4.3.3
   firebase_app_check: ^0.3.2+4
+  google_sign_in: ^7.2.0
 
   # UI & Media Components
   cached_network_image: ^3.4.1
