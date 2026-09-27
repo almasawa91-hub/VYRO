@@ -60,8 +60,16 @@ service cloud.firestore {
       allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid &&
         request.resource.data.ownerId == resource.data.ownerId;
       match /likes/{userId} {
-        allow read: if signedIn();
-        allow write: if isUser(userId);
+        allow read: if signedIn() && (
+          resource.data.userId == request.auth.uid ||
+          canReadPost(get(/databases/$(database)/documents/videos/$(videoId)).data)
+        );
+        allow write: if isUser(userId) &&
+          signedIn() &&
+          (
+            get(/databases/$(database)/documents/videos/$(videoId)).data.privacy == 'public' ||
+            get(/databases/$(database)/documents/videos/$(videoId)).data.ownerId == request.auth.uid
+          );
       }
     }
 
