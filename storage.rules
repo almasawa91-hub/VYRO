@@ -11,6 +11,28 @@ service firebase.storage {
       return request.resource.size < 200 * 1024 * 1024 &&
         request.resource.contentType.matches('video/.*');
     }
+    function isFriend(uid) {
+      return signedIn() && (
+        firestore.exists(/databases/(default)/documents/friends/$(request.auth.uid + '_' + uid)) ||
+        firestore.exists(/databases/(default)/documents/friends/$(uid + '_' + request.auth.uid))
+      );
+    }
+    function canReadPost(postId, ownerId) {
+      let post = firestore.get(/databases/(default)/documents/posts/$(postId)).data;
+      return signedIn() && (
+        post.ownerId == request.auth.uid ||
+        post.privacy == 'public' ||
+        (post.privacy == 'friends' && isFriend(ownerId))
+      );
+    }
+    function canReadStory(storyId, ownerId) {
+      let story = firestore.get(/databases/(default)/documents/stories/$(storyId)).data;
+      return signedIn() && (
+        story.ownerId == request.auth.uid ||
+        story.privacy == 'public' ||
+        (story.privacy == 'friends' && isFriend(ownerId))
+      );
+    }
 
     match /users/{userId}/{allPaths=**} {
       allow read: if signedIn();
@@ -18,9 +40,10 @@ service firebase.storage {
       allow delete: if owner(userId) && signedIn();
     }
 
-    match /posts/{userId}/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if owner(userId) && validImage();
+    match /posts/{userId}/{postId}/{allPaths=**} {
+      allow read: if canReadPost(postId, userId);
+      allow create, update: if owner(userId) && validImage();
+      allow delete: if owner(userId) && signedIn();
     }
 
     match /videos/{userId}/{allPaths=**} {
@@ -29,9 +52,10 @@ service firebase.storage {
       allow delete: if owner(userId) && signedIn();
     }
 
-    match /stories/{userId}/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if owner(userId) && validImage();
+    match /stories/{userId}/{storyId}/{allPaths=**} {
+      allow read: if canReadStory(storyId, userId);
+      allow create, update: if owner(userId) && validImage();
+      allow delete: if owner(userId) && signedIn();
     }
 
     match /messages/{chatId}/{allPaths=**} {
