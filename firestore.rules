@@ -2,163 +2,150 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    function me(uid) { return signedIn() && request.auth.uid == uid; }
-    function chatMember(chatId) {
-      return signedIn() &&
-        request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+    function isUser(uid) { return signedIn() && request.auth.uid == uid; }
+    function isFriend(uid) {
+      return signedIn() && (
+        exists(/databases/$(database)/documents/friends/$(request.auth.uid + '_' + uid)) ||
+        exists(/databases/$(database)/documents/friends/$(uid + '_' + request.auth.uid))
+      );
     }
-    function changedOnly(fields) {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    function canReadPost(data) {
+      return signedIn() && (data.privacy == 'public' || data.ownerId == request.auth.uid ||
+        (data.privacy == 'friends' && isFriend(data.ownerId)));
     }
 
-    match /users/{uid} {
+    match /users/{userId} {
       allow read: if signedIn();
-      allow create: if me(uid) && request.resource.data.uid == uid;
-      allow update: if me(uid) &&
-        request.resource.data.uid == resource.data.uid;
-      allow delete: if me(uid);
+      allow create: if isUser(userId) && request.resource.data.uid == userId;
+      allow update: if isUser(userId) && request.resource.data.uid == resource.data.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName','username','photoUrl','coverUrl','bio','updatedAt','isOnline','lastSeen'
+        ]);
+      allow delete: if isUser(userId);
     }
 
     match /usernames/{username} {
       allow read: if signedIn();
-      allow create: if signedIn() &&
-        request.resource.data.uid == request.auth.uid &&
-        !exists(/databases/$(database)/documents/usernames/$(username));
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
       allow update: if false;
     }
 
     match /posts/{postId} {
-      allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow read: if canReadPost(resource.data);
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid &&
+        request.resource.data.privacy in ['public','friends','only_me'];
+      allow update: if signedIn() && resource.data.ownerId == request.auth.uid &&
+        request.resource.data.ownerId == resource.data.ownerId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','mediaUrls','type','privacy']);
       allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
-      allow update: if signedIn() && (
-        resource.data.ownerId == request.auth.uid ||
-        (changedOnly(['likesCount']) &&
-          request.resource.data.likesCount >= 0 &&
-          (request.resource.data.likesCount == resource.data.likesCount + 1 ||
-           request.resource.data.likesCount == resource.data.likesCount - 1)) ||
-        (changedOnly(['commentsCount']) &&
-          request.resource.data.commentsCount >= 0 &&
-          request.resource.data.commentsCount == resource.data.commentsCount + 1) ||
-        (changedOnly(['sharesCount']) &&
-          request.resource.data.sharesCount >= 0 &&
-          request.resource.data.sharesCount == resource.data.sharesCount + 1)
-      );
-
       match /comments/{commentId} {
-        allow read: if signedIn();
-        allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
-        allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+        allow read: if canReadPost(get(/databases/$(database)/documents/posts/$(postId)).data);
+        allow create: if signedIn() &&
+          canReadPost(get(/databases/$(database)/documents/posts/$(postId)).data) &&
+          request.resource.data.ownerId == request.auth.uid &&
+          request.resource.data.postId == postId;
+        allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
       }
       match /reactions/{userId} {
-        allow read: if signedIn();
-        allow create, update, delete: if me(userId);
+        allow read: if canReadPost(get(/databases/$(database)/documents/posts/$(postId)).data);
+        allow write: if isUser(userId) &&
+          canReadPost(get(/databases/$(database)/documents/posts/$(postId)).data);
       }
     }
 
     match /videos/{videoId} {
-      allow read: if signedIn();
+      allow read: if signedIn() && (resource.data.privacy == 'public' || resource.data.ownerId == request.auth.uid);
       allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
-      allow update: if signedIn() && (
-        resource.data.ownerId == request.auth.uid ||
-        (changedOnly(['likesCount']) && request.resource.data.likesCount >= 0 &&
-          (request.resource.data.likesCount == resource.data.likesCount + 1 ||
-           request.resource.data.likesCount == resource.data.likesCount - 1)) ||
-        (changedOnly(['viewsCount']) && request.resource.data.viewsCount == resource.data.viewsCount + 1) ||
-        (changedOnly(['sharesCount']) && request.resource.data.sharesCount == resource.data.sharesCount + 1)
-      );
+      allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid &&
+        request.resource.data.ownerId == resource.data.ownerId;
       match /likes/{userId} {
         allow read: if signedIn();
-        allow create, delete: if me(userId);
+        allow write: if isUser(userId);
       }
     }
 
     match /videoViews/{viewId} {
-      allow create: if signedIn() && request.resource.data.viewerId == request.auth.uid;
       allow read: if signedIn() && resource.data.viewerId == request.auth.uid;
-      allow update, delete: if false;
+      allow create: if signedIn() && request.resource.data.viewerId == request.auth.uid &&
+        viewId == request.resource.data.videoId + '_' + request.auth.uid;
     }
 
     match /chats/{chatId} {
       allow read: if signedIn() && request.auth.uid in resource.data.participants;
-      allow create: if signedIn() &&
-        request.resource.data.participants.size() == 2 &&
-        request.auth.uid in request.resource.data.participants;
-      allow update: if chatMember(chatId) &&
-        request.resource.data.participants == resource.data.participants;
-
+      allow create: if signedIn() && request.auth.uid in request.resource.data.participants &&
+        request.resource.data.participants.size() == 2 && request.resource.data.chatId == chatId;
+      allow update: if signedIn() && request.auth.uid in resource.data.participants &&
+        request.resource.data.participants == resource.data.participants &&
+        request.resource.data.chatId == resource.data.chatId;
       match /messages/{messageId} {
-        allow read: if chatMember(chatId);
-        allow create: if chatMember(chatId) &&
-          request.resource.data.senderId == request.auth.uid;
-        allow update: if chatMember(chatId) &&
-          request.resource.data.senderId == resource.data.senderId &&
+        allow read: if signedIn() &&
+          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow create: if signedIn() &&
+          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
+          request.resource.data.senderId == request.auth.uid &&
+          request.resource.data.chatId == chatId && request.resource.data.type == 'text';
+        allow update: if signedIn() &&
+          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
+          resource.data.senderId != request.auth.uid &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt','status']);
-        allow delete: if chatMember(chatId) &&
-          resource.data.senderId == request.auth.uid;
+        allow delete: if false;
       }
     }
 
     match /products/{productId} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.sellerId == request.auth.uid;
-      allow update, delete: if signedIn() && resource.data.sellerId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.sellerId == request.auth.uid &&
+        request.resource.data.productId == productId;
+      allow update: if signedIn() && resource.data.sellerId == request.auth.uid &&
+        request.resource.data.sellerId == resource.data.sellerId &&
+        request.resource.data.productId == resource.data.productId;
+      allow delete: if signedIn() && resource.data.sellerId == request.auth.uid;
     }
 
     match /follows/{followId} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.auth.uid == request.resource.data.followerId;
-      allow delete: if signedIn() && request.auth.uid == resource.data.followerId;
+      allow create: if signedIn() && request.resource.data.followerId == request.auth.uid &&
+        request.resource.data.followingId != request.auth.uid &&
+        followId == request.auth.uid + '_' + request.resource.data.followingId;
+      allow delete: if signedIn() && resource.data.followerId == request.auth.uid;
       allow update: if false;
     }
 
     match /friendRequests/{requestId} {
-      allow read: if signedIn() &&
-        (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
-      allow create: if signedIn() &&
-        request.resource.data.senderId == request.auth.uid;
-      allow update: if signedIn() &&
-        resource.data.receiverId == request.auth.uid &&
-        request.resource.data.senderId == resource.data.senderId &&
+      allow read: if signedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.senderId == request.auth.uid &&
+        request.resource.data.receiverId != request.auth.uid && request.resource.data.status == 'pending' &&
+        requestId == request.auth.uid + '_' + request.resource.data.receiverId;
+      allow update: if signedIn() && request.resource.data.senderId == resource.data.senderId &&
         request.resource.data.receiverId == resource.data.receiverId &&
-        request.resource.data.status == 'accepted';
-      allow delete: if signedIn() &&
-        (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
+        ((resource.data.receiverId == request.auth.uid && resource.data.status == 'pending' && request.resource.data.status == 'accepted') ||
+         (resource.data.senderId == request.auth.uid && resource.data.status == 'pending' && request.resource.data.status == 'cancelled'));
+      allow delete: if signedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
     }
 
     match /friends/{friendId} {
-      allow read: if signedIn() &&
-        (resource.data.user1 == request.auth.uid || resource.data.user2 == request.auth.uid);
-      allow create: if signedIn() &&
+      allow read: if signedIn() && (resource.data.user1 == request.auth.uid || resource.data.user2 == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.user1 != request.resource.data.user2 &&
         (request.resource.data.user1 == request.auth.uid || request.resource.data.user2 == request.auth.uid);
-      allow delete: if signedIn() &&
-        (resource.data.user1 == request.auth.uid || resource.data.user2 == request.auth.uid);
-      allow update: if false;
-    }
-
-    match /notifications/{notificationId} {
-      allow read, delete: if signedIn() && resource.data.userId == request.auth.uid;
-      allow create: if false;
-      allow update: if false;
+      allow update, delete: if signedIn() && (resource.data.user1 == request.auth.uid || resource.data.user2 == request.auth.uid);
     }
 
     match /stories/{storyId} {
-      allow read: if signedIn() && (resource.data.privacy == 'public' || resource.data.ownerId == request.auth.uid);
-      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow read: if signedIn() && (resource.data.privacy == 'public' || resource.data.ownerId == request.auth.uid ||
+        (resource.data.privacy == 'friends' && isFriend(resource.data.ownerId)));
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid &&
+        request.resource.data.privacy in ['public','friends','only_me'];
+      allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid &&
+        request.resource.data.ownerId == resource.data.ownerId;
     }
 
-    match /groups/{groupId} {
-      allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
-    }
-
-    match /channels/{channelId} {
-      allow read: if signedIn();
-      allow create, update, delete: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow update: if signedIn() && resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read','readAt']);
+      allow create, delete: if false;
     }
 
     match /{document=**} {
