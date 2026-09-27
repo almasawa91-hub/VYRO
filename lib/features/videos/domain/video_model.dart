@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class VideoModel {
   final String videoId;
   final String ownerId;
