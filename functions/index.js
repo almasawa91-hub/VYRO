@@ -112,7 +112,7 @@ exports.onMessageCreated = onDocumentCreated(
       title: `رسالة من ${senderName}`,
       body: preview || 'أرسل لك رسالة جديدة.',
       actorId: message.senderId,
-      entityId: event.params.chatId,
+      entityId: event.params.messageId,
     });
   },
 );
