@@ -37,7 +37,7 @@ class _SearchScreenState extends State<SearchScreen> {
       }
       if (mounted) setState(() => _results = byId.values.toList());
     } catch (error) {
-      if (mounted) setState(() { _results = []; _error = 'تعذر تنفيذ البحث: ' + error.toString(); });
+      if (mounted) setState(() { _results = []; _error = 'تعذر تنفيذ البحث: $error'; });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -75,8 +75,8 @@ class _SearchScreenState extends State<SearchScreen> {
                         return ListTile(
                           leading: const CircleAvatar(child: Icon(Icons.person)),
                           title: Text((data['displayName'] ?? '').toString()),
-                          subtitle: Text('@' + (data['username'] ?? '').toString()),
-                          onTap: () => context.push('/profile/' + document.id),
+                          subtitle: Text('@${data['username'] ?? ''}'),
+                          onTap: () => context.push('/profile/${document.id}'),
                         );
                       },
                     ),
