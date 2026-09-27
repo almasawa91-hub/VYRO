@@ -3,34 +3,45 @@ service firebase.storage {
   match /b/{bucket}/o {
     function signedIn() { return request.auth != null; }
     function owner(uid) { return signedIn() && request.auth.uid == uid; }
-    function chatMember(chatId) {
-      return signedIn() &&
+    function validImage() {
+      return request.resource.size < 10 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+    function validVideo() {
+      return request.resource.size < 200 * 1024 * 1024 &&
+        request.resource.contentType.matches('video/.*');
+    }
+
+    match /users/{userId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if owner(userId) && validImage();
+    }
+
+    match /posts/{userId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if owner(userId) && validImage();
+    }
+
+    match /videos/{userId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if owner(userId) && validVideo();
+    }
+
+    match /stories/{userId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if owner(userId) && validImage();
+    }
+
+    match /messages/{chatId}/{allPaths=**} {
+      allow read, write: if signedIn() &&
         request.auth.uid in firestore.get(/databases/(default)/documents/chats/$(chatId)).data.participants;
     }
 
-    match /users/{uid}/{allPaths=**} {
+    match /products/{userId}/{allPaths=**} {
       allow read: if signedIn();
-      allow write: if owner(uid);
+      allow write: if owner(userId) && validImage();
     }
-    match /posts/{uid}/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if owner(uid);
-    }
-    match /videos/{uid}/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if owner(uid);
-    }
-    match /stories/{uid}/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if owner(uid);
-    }
-    match /products/{uid}/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if owner(uid);
-    }
-    match /messages/{chatId}/{allPaths=**} {
-      allow read, write: if chatMember(chatId);
-    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }
