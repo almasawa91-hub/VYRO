@@ -18,7 +18,6 @@ class ChatsTab extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasError) return const Center(child: Text('تعذر تحميل المحادثات'));
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-
         final chats = snapshot.data!;
         if (chats.isEmpty) return const Center(child: Text('لا توجد محادثات بعد'));
 
@@ -29,7 +28,6 @@ class ChatsTab extends StatelessWidget {
           itemBuilder: (context, index) {
             final chat = chats[index];
             final otherUserId = chat.participants.firstWhere((id) => id != currentUid, orElse: () => '');
-
             return ListTile(
               leading: const CircleAvatar(child: Icon(Icons.person)),
               title: Text(otherUserId.isEmpty ? 'محادثة' : 'مستخدم'),
@@ -41,17 +39,14 @@ class ChatsTab extends StatelessWidget {
               trailing: chat.lastMessageAt == null
                   ? null
                   : Text(
-                      chat.lastMessageAt!.day.toString() + '/' + chat.lastMessageAt!.month.toString(),
+                      '${chat.lastMessageAt!.day}/${chat.lastMessageAt!.month}',
                       style: Theme.of(context).textTheme.labelSmall,
                     ),
               onTap: otherUserId.isEmpty
                   ? null
                   : () => Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => ChatDetailScreen(
-                            chatId: chat.chatId,
-                            otherUserId: otherUserId,
-                          ),
+                          builder: (_) => ChatDetailScreen(chatId: chat.chatId, otherUserId: otherUserId),
                         ),
                       ),
             );
