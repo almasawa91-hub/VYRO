@@ -73,7 +73,7 @@ class VideoModel {
       hashtags: List<String>.from(map['hashtags'] ?? []),
       soundId: map['soundId'] ?? 'original',
       createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt']) ?? DateTime.now()
+          ? (map['createdAt'] is Timestamp ? (map['createdAt'] as Timestamp).toDate() : DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now())
           : DateTime.now(),
       duration: (map['duration'] as num?)?.toDouble() ?? 0.0,
       viewsCount: (map['viewsCount'] as num?)?.toInt() ?? 0,
