@@ -27,7 +27,7 @@ class _UploadVideoScreenState extends State<UploadVideoScreen> {
       });
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر اختيار الفيديو: ' + error.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر اختيار الفيديو: $error')));
     }
   }
 
@@ -53,7 +53,7 @@ class _UploadVideoScreenState extends State<UploadVideoScreen> {
       Navigator.of(context).pop();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل رفع الفيديو: ' + error.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل رفع الفيديو: $error')));
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -88,7 +88,7 @@ class _UploadVideoScreenState extends State<UploadVideoScreen> {
           if (_uploading) ...[
             LinearProgressIndicator(value: _progress),
             const SizedBox(height: 8),
-            Text((_progress * 100).toStringAsFixed(0) + '%'),
+            Text('${(_progress * 100).toStringAsFixed(0)}%'),
           ],
           const SizedBox(height: 16),
           FilledButton.icon(
