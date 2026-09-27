@@ -22,7 +22,7 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() { _loading = true; _error = null; });
 
     try {
-      final end = query + '\uf8ff';
+      final end = '$query\uf8ff';
       final snapshots = await Future.wait([
         FirebaseFirestore.instance.collection('users').orderBy('username')
             .startAt([query]).endAt([end]).limit(20).get(),
