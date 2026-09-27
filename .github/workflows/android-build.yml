@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build VYRO Android
@@ -19,7 +22,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -33,6 +36,10 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Show Android signing fingerprints
+        working-directory: android
+        run: gradle signingReport
+
       - name: Analyze
         run: flutter analyze
 
@@ -44,6 +51,20 @@ jobs:
 
       - name: Build Release AAB
         run: flutter build appbundle --release
+
+      - name: Verify APK
+        run: |
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          test -f "$APK"
+          test -s "$APK"
+          ls -lh "$APK"
+
+      - name: Verify AAB
+        run: |
+          AAB="build/app/outputs/bundle/release/app-release.aab"
+          test -f "$AAB"
+          test -s "$AAB"
+          ls -lh "$AAB"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
