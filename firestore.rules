@@ -61,8 +61,8 @@ service cloud.firestore {
         request.resource.data.ownerId == resource.data.ownerId;
       match /likes/{userId} {
         allow read: if signedIn() && (
-          resource.data.userId == request.auth.uid ||
-          canReadPost(get(/databases/$(database)/documents/videos/$(videoId)).data)
+          get(/databases/$(database)/documents/videos/$(videoId)).data.privacy == 'public' ||
+          get(/databases/$(database)/documents/videos/$(videoId)).data.ownerId == request.auth.uid
         );
         allow write: if isUser(userId) &&
           signedIn() &&
