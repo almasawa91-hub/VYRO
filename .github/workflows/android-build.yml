@@ -46,6 +46,21 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Create CI debug keystore
+        run: |
+          mkdir -p "$HOME/.config/.android"
+          keytool -genkeypair \
+            -v \
+            -keystore "$HOME/.config/.android/debug.keystore" \
+            -storepass android \
+            -keypass android \
+            -alias AndroidDebugKey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+          chmod 600 "$HOME/.config/.android/debug.keystore"
+
       - name: Show Android signing fingerprints
         working-directory: android
         run: |
@@ -53,6 +68,15 @@ jobs:
           gradle --version
           echo "=== Android signing fingerprints ==="
           gradle signingReport
+
+      - name: Direct SHA-1 and SHA-256 verification
+        run: |
+          echo "=== CI debug.keystore SHA-1 / SHA-256 ==="
+          keytool -list -v \
+            -keystore "$HOME/.config/.android/debug.keystore" \
+            -storepass android \
+            -alias AndroidDebugKey |
+            grep -E "Alias name:|SHA1:|SHA256:"
 
       - name: Analyze
         run: flutter analyze
