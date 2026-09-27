@@ -67,10 +67,10 @@ class UserModel {
       coverUrl: map['coverUrl'] ?? '',
       bio: map['bio'] ?? '',
       createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt']) ?? DateTime.now()
+          ? (map['createdAt'] is Timestamp ? (map['createdAt'] as Timestamp).toDate() : DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now())
           : DateTime.now(),
       updatedAt: map['updatedAt'] != null
-          ? DateTime.tryParse(map['updatedAt']) ?? DateTime.now()
+          ? (map['updatedAt'] is Timestamp ? (map['updatedAt'] as Timestamp).toDate() : DateTime.tryParse(map['updatedAt']?.toString() ?? '') ?? DateTime.now())
           : DateTime.now(),
       followersCount: (map['followersCount'] as num?)?.toInt() ?? 0,
       followingCount: (map['followingCount'] as num?)?.toInt() ?? 0,
@@ -79,7 +79,7 @@ class UserModel {
       videosCount: (map['videosCount'] as num?)?.toInt() ?? 0,
       isVerified: map['isVerified'] ?? false,
       isOnline: map['isOnline'] ?? false,
-      lastSeen: map['lastSeen'] != null ? DateTime.tryParse(map['lastSeen']) : null,
+      lastSeen: map['lastSeen'] != null ? (map['lastSeen'] is Timestamp ? (map['lastSeen'] as Timestamp).toDate() : DateTime.tryParse(map['lastSeen']?.toString() ?? '')) : null,
     );
   }
 }
