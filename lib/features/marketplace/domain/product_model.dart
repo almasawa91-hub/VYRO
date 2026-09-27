@@ -64,7 +64,7 @@ class ProductModel {
       condition: map['condition'] ?? 'جديد',
       location: map['location'] ?? 'غير محدد',
       createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt']) ?? DateTime.now()
+          ? (map['createdAt'] is Timestamp ? (map['createdAt'] as Timestamp).toDate() : DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now())
           : DateTime.now(),
     );
   }
