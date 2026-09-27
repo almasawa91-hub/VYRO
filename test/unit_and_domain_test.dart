@@ -9,7 +9,6 @@ void main() {
       final now = DateTime.now();
       final user = UserModel(
         uid: 'user_123',
-        phone: '+966500000000',
         displayName: 'محمد علي',
         username: 'mohammed_vyro',
         createdAt: now,

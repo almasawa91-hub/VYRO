@@ -160,7 +160,6 @@ class AuthRepository {
 
       final newUser = UserModel(
         uid: user.uid,
-        phone: user.phoneNumber ?? '',
         displayName: displayName.trim(),
         username: cleanUsername,
         photoUrl: photoUrl,
