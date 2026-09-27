@@ -127,7 +127,9 @@ service cloud.firestore {
     match /friends/{friendId} {
       allow read: if signedIn() && (resource.data.user1 == request.auth.uid || resource.data.user2 == request.auth.uid);
       allow create: if signedIn() && request.resource.data.user1 != request.resource.data.user2 &&
-        (request.resource.data.user1 == request.auth.uid || request.resource.data.user2 == request.auth.uid);
+        (request.resource.data.user1 == request.auth.uid || request.resource.data.user2 == request.auth.uid) &&
+        (getAfter(/databases/$(database)/documents/friendRequests/$(request.resource.data.user1 + '_' + request.resource.data.user2)).data.status == 'accepted' ||
+         getAfter(/databases/$(database)/documents/friendRequests/$(request.resource.data.user2 + '_' + request.resource.data.user1)).data.status == 'accepted');
       allow update, delete: if signedIn() && (resource.data.user1 == request.auth.uid || resource.data.user2 == request.auth.uid);
     }
 
