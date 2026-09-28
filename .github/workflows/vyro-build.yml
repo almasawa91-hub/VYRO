@@ -2,11 +2,15 @@ name: VYRO Cloud Release
 
 on:
   push:
-    branches: ["main", "vyro-production-hardening"]
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: vyro-production-build
+  cancel-in-progress: true
 
 # Production release verification
 
