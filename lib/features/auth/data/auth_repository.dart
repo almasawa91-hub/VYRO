@@ -21,7 +21,9 @@ class AuthRepository {
   Future<void> _initializeGoogle() async {
     if (_googleInitialized) return;
 
-    await GoogleSignIn.instance.initialize();
+    await GoogleSignIn.instance.initialize(
+      serverClientId: '584956022687-25hb2ivl1pvbmg6bthprobnrp4carqt0.apps.googleusercontent.com',
+    );
     _googleInitialized = true;
   }
 
