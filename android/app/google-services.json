@@ -43,11 +43,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "584956022687-ggt6t4tdboo7kutctc5hfcphm183q7d7.apps.googleusercontent.com",
+          "client_id": "584956022687-6e47v14iop8g8tu5uft90j3rg3uvl70g.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.vyro.vyro",
-            "certificate_hash": "6fdaabc7a1b4c576f1cdd0585ccc552e75ba2eaa"
+            "certificate_hash": "f90df583cf90649cb1d78410a0ca391827051e05"
           }
         },
         {
