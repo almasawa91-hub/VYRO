@@ -15,6 +15,31 @@ class AuthRepository {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  Future<T> _withFirestoreRetry<T>(Future<T> Function() operation) async {
+    const retryableCodes = {
+      'unavailable',
+      'deadline-exceeded',
+      'aborted',
+      'resource-exhausted',
+    };
+
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await operation();
+      } on FirebaseException catch (e) {
+        final isLastAttempt = attempt == 2;
+        if (isLastAttempt || !retryableCodes.contains(e.code)) {
+          rethrow;
+        }
+        await Future<void>.delayed(
+          Duration(milliseconds: 500 * (attempt + 1)),
+        );
+      }
+    }
+
+    throw StateError('Firestore retry loop ended unexpectedly.');
+  }
+
   Future<UserCredential> signInWithEmail({
     required String email,
     required String password,
@@ -63,19 +88,20 @@ class AuthRepository {
   }
 
   Future<bool> isUsernameAvailable(String username) async {
-    final doc = await _firestore
-        .collection('usernames')
-        .doc(username.trim().toLowerCase())
-        .get();
+    final doc = await _withFirestoreRetry(
+      () => _firestore
+          .collection('usernames')
+          .doc(username.trim().toLowerCase())
+          .get(),
+    );
 
     return !doc.exists;
   }
 
   Future<UserModel?> getUserProfile(String uid) async {
-    final doc = await _firestore
-        .collection('users')
-        .doc(uid)
-        .get();
+    final doc = await _withFirestoreRetry(
+      () => _firestore.collection('users').doc(uid).get(),
+    );
 
     if (doc.exists && doc.data() != null) {
       return UserModel.fromMap(
@@ -122,7 +148,8 @@ class AuthRepository {
         .collection('users')
         .doc(user.uid);
 
-    await _firestore.runTransaction((transaction) async {
+    await _withFirestoreRetry(
+      () => _firestore.runTransaction((transaction) async {
       final usernameSnap =
           await transaction.get(usernameDocRef);
 
@@ -157,7 +184,8 @@ class AuthRepository {
         userDocRef,
         newUser.toMap(),
       );
-    });
+      }),
+    );
   }
 
   Future<void> signOut() async {
@@ -171,10 +199,9 @@ class AuthRepository {
 
     final uid = user.uid;
 
-    final userDoc = await _firestore
-        .collection('users')
-        .doc(uid)
-        .get();
+    final userDoc = await _withFirestoreRetry(
+      () => _firestore.collection('users').doc(uid).get(),
+    );
 
     if (userDoc.exists) {
       final username = userDoc.data()?['username'];
