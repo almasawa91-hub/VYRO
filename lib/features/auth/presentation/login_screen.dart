@@ -40,35 +40,38 @@ class _LoginScreenState extends State<LoginScreen> {
           email: _emailController.text,
           password: _passwordController.text,
         );
-      } else {
-        await _authRepository.signInWithEmail(
-          email: _emailController.text,
-          password: _passwordController.text,
+
+        await _authRepository.sendEmailVerification();
+        await _authRepository.signOut();
+
+        if (!mounted) return;
+        setState(() => _isRegister = false);
+        _showMessage(
+          'تم إنشاء الحساب. افتح بريدك واضغط رابط التحقق، ثم سجل الدخول.',
         );
+        return;
+      }
+
+      await _authRepository.signInWithEmail(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+
+      final verified =
+          await _authRepository.reloadAndCheckEmailVerified();
+
+      if (!verified) {
+        await _authRepository.sendEmailVerification();
+        await _authRepository.signOut();
+        _showError(
+          'البريد غير متحقق. أرسلنا لك رابط تحقق جديد إلى بريدك.',
+        );
+        return;
       }
 
       await _continueAfterAuth();
     } on FirebaseAuthException catch (e) {
       _showError(_firebaseError(e));
-    } catch (e) {
-      _showError(e.toString());
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
-
-    try {
-      await _authRepository.signInWithGoogle();
-      await _continueAfterAuth();
-    } on FirebaseAuthException catch (e) {
-      if (e.code != 'cancelled') {
-        _showError(_firebaseError(e));
-      }
     } catch (e) {
       _showError(e.toString());
     } finally {
@@ -310,45 +313,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             _isRegister
                                 ? 'إنشاء الحساب'
                                 : 'تسجيل الدخول',
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Divider(),
-                          ),
-                          Padding(
-                            padding:
-                                const EdgeInsets.symmetric(
-                              horizontal: 12,
-                            ),
-                            child: Text('أو'),
-                          ),
-                          const Expanded(
-                            child: Divider(),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      OutlinedButton.icon(
-                        onPressed:
-                            _isLoading
-                                ? null
-                                : _signInWithGoogle,
-                        icon: const Icon(
-                          Icons.account_circle_outlined,
-                        ),
-                        label: const Padding(
-                          padding:
-                              EdgeInsets.symmetric(vertical: 12),
-                          child: Text(
-                            'المتابعة باستخدام Google',
                           ),
                         ),
                       ),
