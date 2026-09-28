@@ -53,6 +53,25 @@ class AuthRepository {
     );
   }
 
+  Future<void> sendEmailVerification() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'no-current-user',
+        message: 'لا يوجد مستخدم مسجل الدخول.',
+      );
+    }
+
+    if (!user.emailVerified) {
+      await user.sendEmailVerification();
+    }
+  }
+
+  Future<bool> reloadAndCheckEmailVerified() async {
+    await _auth.currentUser?.reload();
+    return _auth.currentUser?.emailVerified ?? false;
+  }
+
   Future<UserCredential> signInWithGoogle() async {
     await _initializeGoogle();
 
