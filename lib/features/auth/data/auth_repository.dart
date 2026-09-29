@@ -15,6 +15,31 @@ class AuthRepository {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  Future<T> _withFirestoreRetry<T>(
+    Future<T> Function() operation,
+  ) async {
+    const retryable = <String>{
+      'unavailable',
+      'deadline-exceeded',
+      'aborted',
+      'resource-exhausted',
+    };
+
+    Object? lastError;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await operation();
+      } on FirebaseException catch (e) {
+        lastError = e;
+        if (!retryable.contains(e.code) || attempt == 2) rethrow;
+        await Future<void>.delayed(
+          Duration(milliseconds: 500 * (attempt + 1)),
+        );
+      }
+    }
+    throw lastError ?? Exception('فشلت عملية Firestore');
+  }
+
   Future<UserCredential> signInWithEmail({
     required String email,
     required String password,
@@ -44,19 +69,20 @@ class AuthRepository {
   }
 
   Future<bool> isUsernameAvailable(String username) async {
-    final doc = await _firestore
-        .collection('usernames')
-        .doc(username.trim().toLowerCase())
-        .get();
+    final doc = await _withFirestoreRetry(
+      () => _firestore
+          .collection('usernames')
+          .doc(username.trim().toLowerCase())
+          .get(),
+    );
 
     return !doc.exists;
   }
 
   Future<UserModel?> getUserProfile(String uid) async {
-    final doc = await _firestore
-        .collection('users')
-        .doc(uid)
-        .get();
+    final doc = await _withFirestoreRetry(
+      () => _firestore.collection('users').doc(uid).get(),
+    );
 
     if (doc.exists && doc.data() != null) {
       return UserModel.fromMap(
@@ -103,7 +129,7 @@ class AuthRepository {
         .collection('users')
         .doc(user.uid);
 
-    await _firestore.runTransaction((transaction) async {
+    await _withFirestoreRetry(() => _firestore.runTransaction((transaction) async {
       final usernameSnap =
           await transaction.get(usernameDocRef);
 
@@ -137,7 +163,7 @@ class AuthRepository {
         userDocRef,
         newUser.toMap(),
       );
-    });
+    }));
   }
 
   Future<void> signOut() => _auth.signOut();
