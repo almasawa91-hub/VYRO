@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../users/domain/user_model.dart';
 
@@ -15,17 +14,6 @@ class AuthRepository {
   User? get currentUser => _auth.currentUser;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
-
-  static bool _googleInitialized = false;
-
-  Future<void> _initializeGoogle() async {
-    if (_googleInitialized) return;
-
-    await GoogleSignIn.instance.initialize(
-      serverClientId: '584956022687-25hb2ivl1pvbmg6bthprobnrp4carqt0.apps.googleusercontent.com',
-    );
-    _googleInitialized = true;
-  }
 
   Future<UserCredential> signInWithEmail({
     required String email,
@@ -53,31 +41,6 @@ class AuthRepository {
     await _auth.sendPasswordResetEmail(
       email: email.trim(),
     );
-  }
-
-  Future<UserCredential> signInWithGoogle() async {
-    await _initializeGoogle();
-
-    final GoogleSignInAccount googleUser =
-        await GoogleSignIn.instance.authenticate();
-
-    final GoogleSignInAuthentication googleAuth =
-        googleUser.authentication;
-
-    final String? idToken = googleAuth.idToken;
-
-    if (idToken == null || idToken.isEmpty) {
-      throw FirebaseAuthException(
-        code: 'google-id-token-missing',
-        message: 'تعذر الحصول على رمز Google.',
-      );
-    }
-
-    final credential = GoogleAuthProvider.credential(
-      idToken: idToken,
-    );
-
-    return _auth.signInWithCredential(credential);
   }
 
   Future<bool> isUsernameAvailable(String username) async {
@@ -177,15 +140,7 @@ class AuthRepository {
     });
   }
 
-  Future<void> signOut() async {
-    try {
-      if (_googleInitialized) {
-        await GoogleSignIn.instance.signOut();
-      }
-    } finally {
-      await _auth.signOut();
-    }
-  }
+  Future<void> signOut() => _auth.signOut();
 
   Future<void> deleteAccount() async {
     final user = _auth.currentUser;
